@@ -2,11 +2,11 @@ variable "user" {
   default = "ec2-user"
 }
 
-variables "db_user" {
+variable "db_user" {
   default = "estate"
 }
 
-variables "db_password" {
+variable "db_password" {
   default = "toomanysecrets"
 }
 
