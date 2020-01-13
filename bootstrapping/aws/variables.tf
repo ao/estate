@@ -19,22 +19,24 @@ variable "ami" {
     us-west-1      = "ami-3a674d5a"
     us-west-2      = "ami-aa5ebdd2"
     ca-central-1   = "ami-5ac17f3e"
-    eu-west-1      = "ami-ebd02392"
-    eu-west-1      = "ami-489f8e2c"
+    eu-west-1      = "ami-0713f98de93617bb4"
+    eu-west-2      = "ami-489f8e2c"
     eu-central-1   = "ami-657bd20a"
   }
 }
 
 variable "key_name" {
+  default = "terraform-keys2"
   description = "SSH key name in your AWS account for AWS instances."
 }
 
 variable "key_path" {
+  default = "~/.ssh/terraform-keys2"
   description = "Path to the private key specified by key_name."
 }
 
 variable "region" {
-  default     = "us-east-1"
+  default     = "eu-west-1"
   description = "The region of AWS, for AMI lookups."
 }
 

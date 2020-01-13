@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 resource "aws_vpc" "estate" {
-    cidr_block = "10.0.0.0/16"
+    cidr_block = "10.1.0.0/16"
 
     tags = {
         Name = "${var.tagName}-VPC"
@@ -12,8 +12,17 @@ resource "aws_vpc" "estate" {
 
 resource "aws_subnet" "estate" {
     vpc_id = aws_vpc.estate.id
-    cidr_block = "10.0.0.0/24"
+    cidr_block = "10.1.0.0/24"
     availability_zone = "${var.region}a"
+
+    tags = {
+        Name = "${var.tagName}-SUBNET"
+    }
+}
+resource "aws_subnet" "estate2" {
+    vpc_id = aws_vpc.estate.id
+    cidr_block = "10.1.1.0/24"
+    availability_zone = "${var.region}b"
 
     tags = {
         Name = "${var.tagName}-SUBNET"
@@ -21,7 +30,7 @@ resource "aws_subnet" "estate" {
 }
 
 resource "aws_security_group" "estate" {
-    name = "estate_sg"
+    name = "estate-sg"
     description = "Estate"
     vpc_id = aws_vpc.estate.id
 
@@ -59,7 +68,7 @@ resource "aws_security_group_rule" "estate_outbound" {
 
 resource "aws_db_subnet_group" "estate" {
   name = "estate_rds_sng"
-  subnet_ids = ["${aws_subnet.estate.id}"]
+  subnet_ids = ["${aws_subnet.estate.id}", "${aws_subnet.estate2.id}"]
 
   tags = {
     Name = "${var.tagName}-RDS"
@@ -76,7 +85,7 @@ resource "aws_db_instance" "estate" {
     name = "estate"
     username = var.db_user
     password = var.db_password
-    vpc_security_group_ids = ["${aws_security_group.estate.name}"]
+    # vpc_security_group_ids = ["${aws_security_group.estate.name}"]
     db_subnet_group_name = aws_db_subnet_group.estate.id
     skip_final_snapshot = "true"
     backup_retention_period = 0
@@ -90,25 +99,26 @@ resource "aws_db_instance" "estate" {
 }
 
 resource "aws_elasticache_parameter_group" "estate" {
-    name = "estate_parameter_group"
-    family = "memcached1.4"
+    name = "estate-parameter-group"
+    family = "memcached1.5"
 
 }
 
 resource "aws_elasticache_subnet_group" "estate" {
-    name = "estate_elasticache_sng"
+    name = "estate-elasticache-sng"
     description = "Estate"
-    subnet_ids = ["${aws_subnet.estate.id}"]
+    subnet_ids = ["${aws_subnet.estate.id}", "${aws_subnet.estate2.id}"]
 }
 
 resource "aws_elasticache_cluster" "estate" {
     cluster_id = "estate"
-    engine = "memcached1.4"
+    engine = "memcached"
     node_type = "cache.m3.medium"
     num_cache_nodes = 1
     port = 11211
     subnet_group_name = aws_elasticache_subnet_group.estate.name
-    security_group_ids = ["${aws_security_group.estate.name}"]
+    # security_group_ids = ["${aws_security_group.estate.name}"]
+    # security_group_names = ["${aws_security_group.estate.name}"]
     parameter_group_name = aws_elasticache_parameter_group.estate.name
     # az_mode = "cross-az"
     maintenance_window = "wed:04:30-wed:05:30"
@@ -116,15 +126,6 @@ resource "aws_elasticache_cluster" "estate" {
         Name = "${var.tagName}-RDS"
     }
 }
-
-# resource "aws_elasticache_cluster" "example" {
-#   cluster_id           = "estate"
-#   engine               = "memcached1.4"
-#   node_type            = "cache.m3.medium"
-#   num_cache_nodes      = 2
-#   parameter_group_name = "default.memcached1.4"
-#   port                 = 11211
-# }
 
 
 data "template_file" "estate" {
@@ -141,10 +142,10 @@ resource "aws_instance" "estate" {
     ami = lookup(var.ami, var.region)
     instance_type = var.instance_type
     key_name = var.key_name
-    security_groups = ["${aws_security_group.estate.name}"]
+    security_groups = ["${aws_security_group.estate.id}"]
     subnet_id = aws_subnet.estate.id
 
-    ebs_optimized = true
+    ebs_optimized = false
     disable_api_termination = true
     root_block_device {
         volume_type = "gp2"
@@ -153,7 +154,7 @@ resource "aws_instance" "estate" {
     }
 
     connection {
-        user = var.user
+        user = var.key_name
         private_key = file(var.key_path)
     }
 
